@@ -7,7 +7,7 @@ import MessageInput from "./MessageInput";
 import MessageSkeleton from "./skeletons/MessageSkeletion";
 
 const ChatContainer = () => {
-  const { messages, getMessages, isMessagesLoading, selectedUser,subscribeToMessages,unsubscribeFromMessages } =
+  const { messages, getMessages, isMessagesLoading, selectedUser,subscribeToMessages,unsubscribeFromMessages,isInVideoCall,setVideoCallStatus } =
     useChatStore();
 
   const { authUser } = UserAuthStore();
@@ -36,7 +36,6 @@ const ChatContainer = () => {
       </div>
     );
 
-  // console.log(messages);
   return (
     <div className="flex-1 flex flex-col overflow-auto">
       <ChatHeader />

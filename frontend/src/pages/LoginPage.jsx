@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { UserAuthStore } from "../store/userAuthStore";
 import AuthImagePattern from "../components/AuthImagePattern";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Loader2, Lock, Mail, MessageSquare } from "lucide-react";
+import {useGoogleLogin} from "@react-oauth/google";
+import { axiosInstance } from "../lib/axios";
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -10,17 +12,49 @@ const LoginPage = () => {
     email: "",
     password: "",
   });
-  const { login, isLoggingIn } = UserAuthStore();
+  const { login, isLoggingIn,connectSocket} = UserAuthStore();
+  const setAuthUser = UserAuthStore((state) => state.setAuthUser);
+
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     login(formData);
   };
 
+  const responseGoogle = async (authResult) => {
+    try {
+      if (authResult && authResult["code"]) {
+        const response = await axiosInstance.get(
+          `/auth/google?code=${authResult["code"]}`
+        );
+
+        if(response.data?.alreadyPresent) {
+          await setAuthUser(response.data?.data);
+          await connectSocket();
+          toast.success(response.data.message);
+        }
+
+        if(!(response.data?.alreadyPresent)) {
+          const { email, fullName, profilePic } = response.data?.data;
+          navigate('/setpassword', { state: { email, fullName, profilePic } });
+        }
+      }
+    } catch (err) {
+      console.error("Error in code request", err);
+    }
+  }
+  
+  const googleLogin = useGoogleLogin( {
+    onSuccess: responseGoogle,
+    onError: responseGoogle,
+    flow: 'auth-code'
+  })
+
   return (
-    <div className="h-screen grid lg:grid-cols-2">
+    <div className="h-screen grid lg:grid-cols-2 overflow-y-clip z-50">
       {/* Left Side - Form */}
-      <div className="flex flex-col justify-center items-center p-6 sm:p-12">
+      <div className="flex flex-col mt-8 justify-center items-center p-6 sm:p-12">
         <div className="w-full max-w-md space-y-8">
           {/* Logo */}
           <div className="text-center mb-8">
@@ -105,6 +139,12 @@ const LoginPage = () => {
               </Link>
             </p>
           </div>
+          
+          {/* Oauth2  */}
+          <div className="btn btn-primary w-full">
+            <button onClick={googleLogin}>Continue with Google</button>
+          </div>
+
         </div>
       </div>
 

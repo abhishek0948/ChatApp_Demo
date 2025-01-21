@@ -2,6 +2,8 @@ import { generateToken } from "../lib/utils.js";
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import cloudinary from "../lib/cloudinary.js";
+import oauth2client from "../lib/googleConfig.js";
+import axios from "axios";
 
 export const signup = async (req, res) => {
   try {
@@ -51,7 +53,7 @@ export const signup = async (req, res) => {
           fullName: newUser.fullName,
           email: newUser.email,
           profilePic: newUser.profilePic,
-        }
+        },
       });
     } else {
       return res
@@ -91,7 +93,7 @@ export const login = async (req, res) => {
         fullName: user.fullName,
         email: user.email,
         profilePic: user.profilePic,
-      }
+      },
     });
   } catch (error) {
     console.log("Error in login controller", error.message);
@@ -188,3 +190,131 @@ export const checkAuth = async (req, res) => {
     });
   }
 };
+
+export const googleLogin = async (req, res) => {
+  try {
+    const { code } = req.query;
+    const googleRes = await oauth2client.getToken(code);
+    oauth2client.setCredentials(googleRes.tokens);
+
+    const userRes = await axios.get(
+      `https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${googleRes.tokens.access_token}`
+    );
+
+    // console.log(userRes);
+    const { email, name, picture } = userRes.data;
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      // const newuser = new User({
+      //   fullName: name,
+      //   email: email,
+      //   profilePic: picture,
+      //   password: "123456",
+      // })
+      // await newuser.save();
+
+      // generateToken(newuser._id, res);
+      
+      return res.status(200).json({
+        message: "User Login Successfull",
+        data: {
+          fullName: name,
+          email: email,
+          profilePic: picture,
+        },
+        alreadyPresent: false
+      });
+    }
+    
+    generateToken(user._id, res);
+    // newuser Already exists
+    res.json({
+      message: "Login Successfull",
+      alreadyPresent: true,
+      data: {
+        _id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        profilePic: user.profilePic,
+      }
+    });
+  } catch (error) {
+    console.log("Error in googleLogin controller\n", error);
+    return res.status(500).json({
+      message: "Internal Server Error",
+      success: false,
+      error: true,
+    });
+  }
+};
+
+export const setPassword = async (req,res) => {
+  try {
+    const {fullName,email,password,profilePic} = req.body;
+    
+    if (!fullName || !email || !password) {
+      return res.status(400).json({
+        message: "Please fill all the fields",
+        success: false,
+        error: true,
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        message: "Password should be atleast 6 characters",
+        error: true,
+        success: false,
+      });
+    }
+
+    const user = await User.findOne({email});
+    
+    if(user) {
+      return res.status(400).json({
+        message: "Already exists",
+        success: false,
+      })
+    }
+    
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const newUser = new User({
+      fullName: fullName,
+      email: email,
+      password: hashedPassword,
+      profilePic: profilePic
+    });
+    
+    
+    if (newUser) {
+      await newUser.save();
+      generateToken(newUser._id, res);
+      return res.status(200).json({
+        message: "User Signup Successfull",
+        success: true,
+        error: false,
+        user: {
+          _id: newUser._id,
+          fullName: newUser.fullName,
+          email: newUser.email,
+          profilePic: newUser.profilePic,
+        },
+      });
+    } else {
+      return res
+        .status(400)
+        .json({ message: "Invalid User data", success: false, error: true });
+    }
+  } catch (error) {
+    console.log("Error in setPassword controller\n", error);
+    return res.status(500).json({
+      message: "Internal Server Error",
+      success: false,
+      error: true,
+    });
+  }
+}

@@ -1,9 +1,9 @@
-import { X } from "lucide-react";
+import { ArrowLeft, Video, X } from "lucide-react";
 import { UserAuthStore } from "../store/userAuthStore";
 import { useChatStore } from "../store/useChatStore";
 
 const ChatHeader = () => {
-  const { selectedUser, setSelectedUser } = useChatStore();
+  const { selectedUser, setSelectedUser, isInVideoCall, setVideoCallStatus } = useChatStore();
   const { onlineUsers } = UserAuthStore();
 
   return (
@@ -27,9 +27,16 @@ const ChatHeader = () => {
         </div>
 
         {/* Close button */}
-        <button onClick={() => setSelectedUser(null)}>
-          <X />
-        </button>
+        <div className="flex flex-row gap-6">
+          <button className="hover:bg-base-300 p-2 rounded-full" onClick={() => {
+            setVideoCallStatus(true);
+          }}>
+            <Video />
+          </button>
+          <button className="hover:bg-base-300 p-2 rounded-full" onClick={() => setSelectedUser(null)}>
+            <X />
+          </button>
+        </div>
       </div>
     </div>
   );
