@@ -52,6 +52,13 @@ io.on("connection",(socket) => {
         const receiverSocketId = getReceiverSocketId(data.to._id);
         io.to(receiverSocketId).emit("call-accepted",{from:data.from});
     })
+
+    socket.on("connect-to-peer",(data) => {
+        console.log("Connecting to peer:",data);
+        const receiverSocketId = getReceiverSocketId(data.from._id);
+        io.to(receiverSocketId).emit("peer-connection-initiated",{to:data.to,from:data.from});
+    })
+
 })
 
 export {io,app,server};

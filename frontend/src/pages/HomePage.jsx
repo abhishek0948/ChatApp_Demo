@@ -12,7 +12,7 @@ const HomePage = () => {
     selectedUser,
   } = useChatStore();
 
-  const { setisInVideoCall,isInVideoCall ,socket,isIncomingCall,setIsIncomingCall,setCallerInfo }= UserAuthStore();
+  const { setisInVideoCall,isInVideoCall ,socket,isIncomingCall,setIsIncomingCall,setCallerInfo,authUser }= UserAuthStore();
 
   useEffect(() => {
     socket.on("incoming-call",(data) => {
@@ -31,6 +31,7 @@ const HomePage = () => {
     socket.on("call-accepted",(data) => {
       console.log(`Call accepted by ${data.from.fullName}`);
       toast.success(`Call accepted by ${data.from.fullName}`);
+      socket.emit("connect-to-peer",{to:data.from,from:authUser});
     })
 
     return () => {

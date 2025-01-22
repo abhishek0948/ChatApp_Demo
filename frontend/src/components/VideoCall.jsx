@@ -1,7 +1,7 @@
 import { CameraOff, MicOff, MicOffIcon, Speaker, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import Draggable from 'react-draggable';
-import { useChatStore } from '../store/useChatStore';
+import { UserAuthStore } from '../store/userAuthStore';
 
 const VideoCall = () => {
     
@@ -9,8 +9,7 @@ const VideoCall = () => {
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
     
-    const { messages, getMessages, isMessagesLoading, selectedUser,subscribeToMessages,unsubscribeFromMessages,isInVideoCall,setVideoCallStatus } =
-     useChatStore();
+    const { socket } = UserAuthStore();
 
   useEffect(() => {
     const startMedia = async () => {
@@ -29,7 +28,6 @@ const VideoCall = () => {
     };
 
     startMedia();
-
     // Cleanup function to stop all tracks when component unmounts
     return () => {
       if (localStream) {
@@ -38,6 +36,15 @@ const VideoCall = () => {
     };
   }, []);
 
+  useEffect(() => {
+    socket.on("peer-connection-initiated",(data) => {
+      console.log("Peer connection initiated:",data);
+    })
+
+    return () => {
+      socket.off("peer-connection-initiated");
+    }
+  },[socket])
   return (
     <Draggable handle=".drag-handle">
       <div className='drag-handle top-10 left-20 fixed z-50 w-full max-w-6xl'>
