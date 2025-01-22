@@ -14,8 +14,30 @@ export const UserAuthStore = create((set, get) => ({
   onlineUsers: [],
   socket: null,
 
+  isInVideoCall: false,
+  isCalling: false,
+  isIncomingCall: false,
+  isCallAccepted: false,
+  isCallRejected: false,
+  isCallEnded: false,
+  callerInfo: null,
+
   setAuthUser: (user) => set({ authUser: user }),
-  
+
+  setCallerInfo: (info) => set({ callerInfo: info }),
+
+  setisInVideoCall: (status) => {
+    set({ isInVideoCall: status });
+  },
+
+  setIsCalling: (status) => {
+    set({ isCalling: status });
+  },
+
+  setIsIncomingCall: (status) => {
+    set({ isIncomingCall: status });
+  },
+
   checkAuth: async () => {
     try {
       const response = await axiosInstance.get("/auth/check");

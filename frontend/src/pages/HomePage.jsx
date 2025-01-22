@@ -4,23 +4,46 @@ import Sidebar from "../components/Sidebar";
 import ChatContainer from "../components/ChatContainer";
 import NoChatSelected from "../components/NoChatSelected";
 import VideoCall from "../components/VideoCall";
-
+import { UserAuthStore } from "../store/userAuthStore";
+import IncomingCallNotification from "../components/IncomingCallNotification";
+import toast from "react-hot-toast";
 const HomePage = () => {
   const {
-    messages,
-    getMessages,
-    isMessagesLoading,
     selectedUser,
-    subscribeToMessages,
-    unsubscribeFromMessages,
-    isInVideoCall,
-    setVideoCallStatus,
   } = useChatStore();
+
+  const { setisInVideoCall,isInVideoCall ,socket,isIncomingCall,setIsIncomingCall,setCallerInfo }= UserAuthStore();
+
+  useEffect(() => {
+    socket.on("incoming-call",(data) => {
+      setIsIncomingCall(true);
+      setCallerInfo(data.caller);
+    })
+
+    socket.on("call-rejected",(data) => {
+      // console.log("Call rejected:",data);
+      setIsIncomingCall(false);
+      setisInVideoCall(false);
+      setCallerInfo(null);
+      toast.error(`Call rejected by ${data.from.fullName}`);
+    })
+
+    socket.on("call-accepted",(data) => {
+      console.log(`Call accepted by ${data.from.fullName}`);
+      toast.success(`Call accepted by ${data.from.fullName}`);
+    })
+
+    return () => {
+      socket.off("incoming-call");
+      socket.off("call-rejected");
+      socket.off("call-accepted");
+    }
+  },[socket])
 
   useEffect(() => {
     const savedVideoCallStatus = sessionStorage.getItem("videoCallStatus");
     if (savedVideoCallStatus === "true" && !isInVideoCall) {
-      setVideoCallStatus(true);
+      setisInVideoCall(true);
     }
   }, []);
 
@@ -40,6 +63,7 @@ const HomePage = () => {
         </div>
       </div>
       {isInVideoCall && <VideoCall />}
+      {isIncomingCall && <IncomingCallNotification />}
     </div>
   );
 };

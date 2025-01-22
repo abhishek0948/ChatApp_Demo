@@ -9,7 +9,6 @@ export const useChatStore = create((set,get) => ({
     selectedUser: null,
     isUsersLoading: false,
     isMessagesLoading: false,
-    isInVideoCall: false,
 
     getUsers: async () => {
         set({ isUsersLoading: true });
@@ -73,8 +72,4 @@ export const useChatStore = create((set,get) => ({
     },
 
     setSelectedUser: (user) => {set({ selectedUser: user })},
-
-    setVideoCallStatus: (status) => {
-        set({ isInVideoCall: status });
-    },
 }))

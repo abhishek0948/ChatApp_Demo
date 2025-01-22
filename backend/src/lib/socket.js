@@ -33,6 +33,25 @@ io.on("connection",(socket) => {
         delete userSocketMap[userId];   
         io.emit("getOnlineUsers",Object.keys(userSocketMap));
     })
+
+    socket.on("call-initiated",(data) => {
+        console.log("Call initiated:",data);
+        const receiverSocketId = getReceiverSocketId(data.to._id);
+        console.log(receiverSocketId);
+        io.to(receiverSocketId).emit("incoming-call",{caller:data.from});
+    })
+
+    socket.on("reject-call",(data) => {
+        console.log("Call rejected:",data);
+        const receiverSocketId = getReceiverSocketId(data.to._id);
+        io.to(receiverSocketId).emit("call-rejected",{from:data.from});
+    })
+
+    socket.on("accept-call",(data) => {
+        console.log("Call accepted:",data);
+        const receiverSocketId = getReceiverSocketId(data.to._id);
+        io.to(receiverSocketId).emit("call-accepted",{from:data.from});
+    })
 })
 
 export {io,app,server};

@@ -7,7 +7,7 @@ import MessageInput from "./MessageInput";
 import MessageSkeleton from "./skeletons/MessageSkeletion";
 
 const ChatContainer = () => {
-  const { messages, getMessages, isMessagesLoading, selectedUser,subscribeToMessages,unsubscribeFromMessages,isInVideoCall,setVideoCallStatus } =
+  const { messages, getMessages, isMessagesLoading, selectedUser,subscribeToMessages,unsubscribeFromMessages } =
     useChatStore();
 
   const { authUser } = UserAuthStore();
