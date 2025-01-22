@@ -1,11 +1,12 @@
-import { CameraOff, MicOff, MicOffIcon, Speaker, X } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import { CameraOff, MicOffIcon } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Draggable from 'react-draggable';
 import { UserAuthStore } from '../store/userAuthStore';
+import peer from '../service/peer';
 
 const VideoCall = () => {
-    
     const [localStream, setLocalStream] = useState(null);
+    const [remoteStream, setRemoteStream] = useState(null);
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
     
@@ -18,9 +19,10 @@ const VideoCall = () => {
           video: true,
           audio: true,
         });
+
         setLocalStream(stream);
         if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
+          localVideoRef.current.srcObject = localStream;
         }
       } catch (error) {
         console.error('Error accessing media devices:', error);
@@ -29,22 +31,62 @@ const VideoCall = () => {
 
     startMedia();
     // Cleanup function to stop all tracks when component unmounts
-    return () => {
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-      }
-    };
+    // return () => {
+    //   if (localStream) {
+    //     localStream.getTracks().forEach(track => track.stop());
+    //   }
+    // };
   }, []);
 
+  const handlePeerConnectionInitiated = useCallback(async (data) => {
+    const offer = await peer.getOffer();
+    socket.emit("send-offer",{to:data.to,from:data.from,offer});
+  },[socket]);
+
+  const handleReceiveOffer = useCallback(async(data) => {
+    const ans = await peer.getAnswer(data.offer);
+    socket.emit("send-answer",{to:data.to,from:data.from,answer:ans});
+  },[socket]);
+
+  const handleReceiveAnswer = useCallback(async(data) => {
+    await peer.setLocalDescription(data.answer);
+    for(const track of localStream?.getTracks()) {
+      peer.peer.addTrack(track,localStream);
+    }
+  },[socket,localStream]);
+
   useEffect(() => {
-    socket.on("peer-connection-initiated",(data) => {
-      console.log("Peer connection initiated:",data);
-    })
+    peer.peer.addEventListener("track",async ev => {
+      const remoteStream = ev.streams;
+      try {
+        setRemoteStream(remoteStream);
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = remoteStream;
+        }
+      } catch (err) {
+        console.error("Error adding track:",err);
+      }
+    });
+
+    // return () => {
+    //   if (remoteStream) {
+    //     remoteStream.getTracks().forEach(track => track.stop());
+    //   }
+    // };
+  })
+  useEffect(() => {
+    socket.on("peer-connection-initiated",handlePeerConnectionInitiated);
+    socket.on("receive-offer",handleReceiveOffer);
+    socket.on("receive-answer",handleReceiveAnswer);
 
     return () => {
-      socket.off("peer-connection-initiated");
+      socket.off("peer-connection-initiated",handlePeerConnectionInitiated);
+      socket.off("receive-offer",handleReceiveOffer);
+      socket.off("receive-answer",handleReceiveAnswer);
     }
   },[socket])
+
+  console.log("Printing Local Stream",localStream);
   return (
     <Draggable handle=".drag-handle">
       <div className='drag-handle top-10 left-20 fixed z-50 w-full max-w-6xl'>
