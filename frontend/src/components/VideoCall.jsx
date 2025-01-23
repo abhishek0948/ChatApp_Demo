@@ -50,7 +50,7 @@ const VideoCall = () => {
 
   const handleReceiveAnswer = useCallback(async(data) => {
     await peer.setLocalDescription(data.answer);
-    for(const track of localStream?.getTracks()) {
+    for(const track of localStream.getTracks()) {
       peer.peer.addTrack(track,localStream);
     }
   },[socket,localStream]);
@@ -59,7 +59,7 @@ const VideoCall = () => {
     peer.peer.addEventListener("track",async ev => {
       const remoteStream = ev.streams;
       try {
-        setRemoteStream(remoteStream);
+        setRemoteStream(remoteStream[0]);
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = remoteStream;
         }
