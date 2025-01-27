@@ -23,6 +23,12 @@ const VideoCall = () => {
   }, [localStream]);
 
   useEffect(() => {
+    if (remoteStream) {
+      document.getElementById("remote-video").srcObject = remoteStream;
+    }
+  }, [remoteStream]);
+
+  useEffect(() => {
     const startMedia = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
