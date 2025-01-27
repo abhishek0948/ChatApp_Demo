@@ -97,7 +97,7 @@ const VideoCall = () => {
       console.log("In event", remotestream);
       setRemoteStream(remotestream);
       if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = remoteStream;
+        remoteVideoRef.current.srcObject = remotestream;
       }
     };
 
