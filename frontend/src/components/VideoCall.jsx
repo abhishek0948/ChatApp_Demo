@@ -22,7 +22,7 @@ const VideoCall = () => {
 
         setLocalStream(stream);
         if (localVideoRef.current) {
-          localVideoRef.current.srcObject = localStream;
+          localVideoRef.current.srcObject = stream;
         }
       } catch (error) {
         console.error('Error accessing media devices:', error);
@@ -30,12 +30,12 @@ const VideoCall = () => {
     };
 
     startMedia();
-    // Cleanup function to stop all tracks when component unmounts
-    // return () => {
-    //   if (localStream) {
-    //     localStream.getTracks().forEach(track => track.stop());
-    //   }
-    // };
+    
+    return () => {
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+    };
   }, []);
 
   const handlePeerConnectionInitiated = useCallback(async (data) => {
@@ -50,30 +50,35 @@ const VideoCall = () => {
 
   const handleReceiveAnswer = useCallback(async(data) => {
     await peer.setLocalDescription(data.answer);
-    for(const track of localStream.getTracks()) {
-      peer.peer.addTrack(track,localStream);
+    
+    console.log("local stream in answer",localStream);
+    if (localStream) {
+      for(const track of localStream.getTracks()) {
+        peer.peer.addTrack(track, localStream);
+      }
     }
-  },[socket,localStream]);
+    console.log("answer", data.answer);
+  }, [localStream]);
 
   useEffect(() => {
-    peer.peer.addEventListener("track",async ev => {
-      const remoteStream = ev.streams;
-      try {
-        setRemoteStream(remoteStream[0]);
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = remoteStream;
-        }
-      } catch (err) {
-        console.error("Error adding track:",err);
+    const handleTrack = async (ev) => {
+      const [remoteStream] = ev.streams;
+      setRemoteStream(remoteStream);
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = remoteStream;
       }
-    });
+    };
 
-    // return () => {
-    //   if (remoteStream) {
-    //     remoteStream.getTracks().forEach(track => track.stop());
-    //   }
-    // };
-  })
+    peer.peer.addEventListener("track", handleTrack);
+
+    return () => {
+      peer.peer.removeEventListener("track", handleTrack);
+      if (remoteStream) {
+        remoteStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [remoteStream]);
+
   useEffect(() => {
     socket.on("peer-connection-initiated",handlePeerConnectionInitiated);
     socket.on("receive-offer",handleReceiveOffer);
@@ -86,7 +91,6 @@ const VideoCall = () => {
     }
   },[socket])
 
-  console.log("Printing Local Stream",localStream);
   return (
     <Draggable handle=".drag-handle">
       <div className='drag-handle top-10 left-20 fixed z-50 w-full max-w-6xl'>
