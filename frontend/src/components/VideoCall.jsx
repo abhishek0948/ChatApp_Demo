@@ -93,9 +93,9 @@ const VideoCall = () => {
 
   useEffect(() => {
     const handleTrack = async (ev) => {
-      const remoteStream = ev.streams[0];
-      console.log("In event", remoteStream);
-      setRemoteStream(remoteStream);
+      const remotestream = ev.streams[0];
+      console.log("In event", remotestream);
+      setRemoteStream(remotestream);
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = remoteStream;
       }
