@@ -96,9 +96,11 @@ const VideoCall = () => {
       const remotestream = ev.streams[0];
       console.log("In event", remotestream);
       setRemoteStream(remotestream);
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = remotestream;
-      }
+      // if (remoteVideoRef.current) {
+      //   remoteVideoRef.current.srcObject = remotestream;
+      // }
+      console.log("remoteStream", remoteStream);
+      document.getElementById("remote-video").srcObject = remoteStream;
     };
 
     peer.peer.ontrack = handleTrack;
@@ -155,6 +157,7 @@ const VideoCall = () => {
                 autoPlay
                 playsInline
                 className="w-full h-full object-cover"
+                id="remote-video"
               />
               <div className="absolute bottom-4 left-4 text-white bg-black bg-opacity-50 px-2 py-1 rounded">
                 Remote User
