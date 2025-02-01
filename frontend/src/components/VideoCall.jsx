@@ -3,6 +3,8 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import Draggable from "react-draggable";
 import { UserAuthStore } from "../store/userAuthStore";
 import peer from "../service/peer";
+import { useChatStore } from "../store/useChatStore";
+import toast from "react-hot-toast";
 
 const VideoCall = () => {
   const [localStream, setLocalStream] = useState(null);
@@ -11,6 +13,8 @@ const VideoCall = () => {
   const remoteVideoRef = useRef(null);
 
   const { socket } = UserAuthStore();
+  const { setisInVideoCall,authUser,callerInfo,setCallerInfo }= UserAuthStore();
+  const {selectedUser} = useChatStore();
 
   useEffect(() => {
     if (localStream) {
@@ -23,9 +27,24 @@ const VideoCall = () => {
   }, [localStream]);
 
   useEffect(() => {
-    if (remoteStream) {
-      document.getElementById("remote-video").srcObject = remoteStream;
-    }
+    const handleTrack = async (ev) => {
+      const remotestream = ev.streams[0];
+      setRemoteStream(remotestream);
+      
+      // Update this to use remotestream instead of remoteStream
+      if (document.getElementById("remote-video")) {
+        document.getElementById("remote-video").srcObject = remotestream;
+      }
+    };
+  
+    peer.peer.ontrack = handleTrack;
+    
+    return () => {
+      peer.peer.ontrack = null;
+      if (remoteStream) {
+        remoteStream.getTracks().forEach((track) => track.stop());
+      }
+    };
   }, [remoteStream]);
 
   useEffect(() => {
@@ -53,6 +72,60 @@ const VideoCall = () => {
       }
     };
   }, []);
+
+  const handleEndCall = useCallback(
+    async () => {
+      // Stop all local tracks
+      if (localStream) {
+        await localStream.getTracks().forEach((track) => track.stop());
+      }
+
+      // Stop all remote tracks
+      if (remoteStream) {
+         await remoteStream.getTracks().forEach((track) => track.stop());
+      }
+
+      // Close and cleanup the peer connection
+      if (peer.peer) {
+        peer.peer.close();
+      }
+
+      // Reset states
+      setLocalStream(null);
+      setRemoteStream(null);
+      setisInVideoCall(false);
+      // Notify other user that call has ended
+      socket.emit("end-call", { to: callerInfo, from: authUser });
+      setCallerInfo(null);
+      toast.success("Call Ended");
+    },
+    [localStream, remoteStream, socket, callerInfo, authUser]
+  );
+
+  const handleCloseConnection = useCallback(
+    async () => {
+      if (localStream) {
+        await localStream.getTracks().forEach((track) => track.stop());
+      }
+
+      // Stop all remote tracks
+      if (remoteStream) {
+        await remoteStream.getTracks().forEach((track) => track.stop());
+      }
+
+      // Close and cleanup the peer connection
+      if (peer.peer) {
+        peer.peer.close();
+      }
+
+      // Reset states
+      setLocalStream(null);
+      setRemoteStream(null);
+      setisInVideoCall(false);
+      setCallerInfo(null);
+      toast.success("Call Ended");
+    }
+  ,[localStream,remoteStream,socket,selectedUser]);
 
   const handlePeerConnectionInitiated = useCallback(
     async (data) => {
@@ -124,11 +197,13 @@ const VideoCall = () => {
     socket.on("peer-connection-initiated", handlePeerConnectionInitiated);
     socket.on("receive-offer", handleReceiveOffer);
     socket.on("receive-answer", handleReceiveAnswer);
+    socket.on("call-ended",handleCloseConnection);
 
     return () => {
       socket.off("peer-connection-initiated", handlePeerConnectionInitiated);
       socket.off("receive-offer", handleReceiveOffer);
       socket.off("receive-answer", handleReceiveAnswer);
+      socket.off("call-ended",handleCloseConnection);
     };
   }, [socket]);
 
@@ -176,7 +251,7 @@ const VideoCall = () => {
             <button className="btn btn-circle ">
               <MicOffIcon />
             </button>
-            <button className="btn btn-circle btn-error">{/* <Ca */}</button>
+            <button onClick={handleEndCall} className="btn btn-circle btn-error">{/* <Ca */}</button>
             <button className="btn btn-circle">
               <CameraOff />
             </button>

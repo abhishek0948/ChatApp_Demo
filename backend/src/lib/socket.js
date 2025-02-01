@@ -70,6 +70,12 @@ io.on("connection",(socket) => {
         const receiverSocketId = getReceiverSocketId(data.from._id);
         io.to(receiverSocketId).emit("receive-answer",{to:data.to,from:data.from,answer:data.answer});
     })
+
+    socket.on("end-call", (data) => {
+        console.log("Call ended:", data);
+        const receiverSocketId = getReceiverSocketId(data.to._id);
+        io.to(receiverSocketId).emit("call-ended", { from: data.from });
+    });
 })
 
 export {io,app,server};

@@ -1,11 +1,11 @@
-import { Video, X } from "lucide-react";
+import { Video, VideoOff, X } from "lucide-react";
 import { UserAuthStore } from "../store/userAuthStore";
 import { useChatStore } from "../store/useChatStore";
 import { useCallback } from "react";
 
 const ChatHeader = () => {
   const { selectedUser, setSelectedUser } = useChatStore();
-  const { setIsCalling, setIsIncomingCall, setisInVideoCall,socket } = UserAuthStore();
+  const { setIsCalling, setIsIncomingCall,setCallerInfo,callerInfo, setisInVideoCall,socket } = UserAuthStore();
 
   const { onlineUsers,authUser } = UserAuthStore();
 
@@ -13,6 +13,7 @@ const ChatHeader = () => {
     setIsCalling(true);
     setIsIncomingCall(false);
     setisInVideoCall(true);
+    setCallerInfo(selectedUser);
     socket.emit("call-initiated",{to:selectedUser,from:authUser})
   },[selectedUser,authUser]) 
 
@@ -38,9 +39,17 @@ const ChatHeader = () => {
 
         {/* Close button */}
         <div className="flex flex-row gap-6">
-          <button className="hover:bg-base-300 p-2 rounded-full" onClick={callStarted}>
-            <Video />
-          </button>
+          {
+            callerInfo ? (
+              <button >
+                <VideoOff/>
+              </button>
+            ) : (
+              <button disabled={callerInfo ? true : false} className="hover:bg-base-300 p-2 rounded-full" onClick={callStarted}>
+                <Video />
+              </button>
+            )
+          }
           <button className="hover:bg-base-300 p-2 rounded-full" onClick={() => setSelectedUser(null)}>
             <X />
           </button>
